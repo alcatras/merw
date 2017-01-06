@@ -1,0 +1,75 @@
+#include <iostream>
+#include <getopt.h>
+#include "image_helper.h"
+
+int main(int argc, char **argv) {
+    std::string photo = "";
+
+    std::string superpixel_method = "slic"; // slic, slico, lsc
+
+    std::string color_space = "bgr2"; // rgb, bgr2
+    std::string average_method = "average"; // average, mean, min, max
+    float color_weight = 0.9; // 0 .. 1 - dist
+    float distance_weight = 0.1; // 0 .. 1 - color
+
+    bool dump_intermediate = false;
+
+    static struct option long_options[] =
+            {
+                    {"photo",           required_argument, 0, 0},
+                    {"superpixel",      required_argument, 0, 1},
+                    {"color_space",     required_argument, 0, 2},
+                    {"average",         required_argument, 0, 3},
+                    {"color_weight",    required_argument, 0, 4},
+                    {"distance_weight", required_argument, 0, 5},
+                    {"dump",            no_argument,       0, 6},
+                    {0, 0,                                 0, 0}
+            };
+
+    int ch;
+    while ((ch = getopt_long_only(argc, argv, "", long_options, NULL)) != -1) {
+        switch (ch) {
+            case 0:
+                photo = optarg;
+                break;
+            case 1:
+                superpixel_method = optarg;
+                break;
+            case 2:
+                color_space = optarg;
+                break;
+            case 3:
+                average_method = optarg;
+                break;
+            case 4:
+                color_weight = atoi(optarg);
+                break;
+            case 5:
+                distance_weight = atoi(optarg);
+                break;
+            case 6:
+                dump_intermediate = true;
+                break;
+            default:
+                break;
+        }
+    }
+
+    if(photo == "")
+    {
+        std::cout << "No photo specified, use option --photo [path]";
+        exit(0x1ff);
+    }
+
+    image_helper image;
+    image.load(photo);
+
+    cv::Mat labels = image.superpixel(superpixel_method);
+
+    image.convert_to_lab(color_space);
+
+    std::cout << photo;
+
+    exit(0);
+}
+
