@@ -1,11 +1,13 @@
 #include <iostream>
 #include <getopt.h>
-#include "image_helper.h"
 
-int main(int argc, char **argv) {
+#include "image_utils.h"
+#include "merw.h"
+
+int main(int argc, char** argv) {
     std::string photo = "";
 
-    std::string superpixel_method = "slic"; // slic, slico, lsc
+    std::string superpixel_method = "slic:4:10:20"; // slic, slico, lsc
 
     std::string color_space = "bgr2"; // rgb, bgr2
     std::string average_method = "average"; // average, mean, min, max
@@ -27,8 +29,8 @@ int main(int argc, char **argv) {
             };
 
     int ch;
-    while ((ch = getopt_long_only(argc, argv, "", long_options, NULL)) != -1) {
-        switch (ch) {
+    while((ch = getopt_long_only(argc, argv, "", long_options, NULL)) != -1) {
+        switch(ch) {
             case 0:
                 photo = optarg;
                 break;
@@ -55,20 +57,16 @@ int main(int argc, char **argv) {
         }
     }
 
-    if(photo == "")
-    {
+    if(photo == "") {
         std::cout << "No photo specified, use option --photo [path]";
         exit(0x1ff);
     }
 
-    image_helper image;
-    image.load(photo);
+    cv::Mat image = cv::imread(photo);
 
-    cv::Mat labels = image.superpixel(superpixel_method);
+    superpixel_result superpixeled = superpixel(superpixel_method, image, dump_intermediate);
 
-    image.convert_to_lab(color_space);
-
-    std::cout << photo;
+    merw(superpixeled);
 
     exit(0);
 }
