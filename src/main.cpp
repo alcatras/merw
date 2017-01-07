@@ -64,9 +64,17 @@ int main(int argc, char** argv) {
 
     cv::Mat image = cv::imread(photo);
 
-    superpixel_result superpixeled = superpixel(superpixel_method, image, dump_intermediate);
+    superpixel_settings settings;
+    settings.method = cv::ximgproc::SLIC;
+    settings.region_size = 50;
+    settings.ruler = 10.f;
+    settings.iterations = 10;
+    settings.enforce_connectivity = true;
+    settings.dump_data = true;
 
-    merw(superpixeled);
+    superpixel_result superpixeled = slic_superpixel(settings, image);
+
+    merw(image, superpixeled);
 
     exit(0);
 }

@@ -10,49 +10,49 @@
 
 #include "utils.h"
 
+struct superpixel_settings {
+    typename cv::ximgproc::SLIC method;
+    int region_size;
+    float ruler;
+    int iterations;
+    bool enforce_connectivity;
+    bool dump_data;
+};
+
 struct superpixel_result {
-    int quantity;
+    int number_of_regions;
     cv::Mat map;
 };
 
-superpixel_result superpixel(const std::string& method, cv::Mat& img, const bool dump) {
-    std::vector<std::string> args = parse_args(method);
-    assert(args.size() > 0);
+superpixel_result slic_superpixel(const superpixel_settings& settings, const cv::Mat& img) {
+    cv::Ptr<cv::ximgproc::SuperpixelSLIC> slic = cv::ximgproc::createSuperpixelSLIC(img, settings.method,
+                                                                                    settings.region_size,
+                                                                                    settings.ruler);
+    slic->iterate(settings.iterations);
 
-    if(args[0] == "slic") {
-        assert(args.size() == 4);
-        cv::Ptr<cv::ximgproc::SuperpixelSLIC> slic = cv::ximgproc::createSuperpixelSLIC(img, cv::ximgproc::SLIC,
-                                                                                        atoi(args[1].c_str()),
-                                                                                        atof(args[2].c_str()));
-        slic->iterate(atoi(args[3].c_str()));
-
+    if(settings.enforce_connectivity)
         slic->enforceLabelConnectivity();
 
-        cv::Mat labels(img.size(), CV_32SC1);
-        slic->getLabels(labels);
+    cv::Mat labels(img.size(), CV_32SC1);
+    slic->getLabels(labels);
 
+    if(settings.dump_data) {
         std::cout << "slic finished\nsuperpixels: " << slic->getNumberOfSuperpixels() << std::endl;
 
-        if(dump) {
-            cv::Mat contour;
-            slic->getLabelContourMask(contour);
-            cv::imwrite("dump/superpixel_contour.png", contour);
-            cv::imwrite("dump/superpixel_labels.png", labels);
-        }
+        cv::Mat contour;
+        slic->getLabelContourMask(contour);
 
-        return {slic->getNumberOfSuperpixels(), labels};
+        cv::imwrite("dump/superpixel_contour.png", contour);
+        cv::imwrite("dump/superpixel_labels.png", labels);
     }
-    return {};
+
+    return {slic->getNumberOfSuperpixels(), labels};
 }
 
-cv::Mat convert_to_lab(const std::string& type, cv::Mat img) {
-    if(type == "bgr2") {
-        cv::Mat imgLab;
-        cv::cvtColor(img, imgLab, CV_BGR2Lab);
-
-        return imgLab;
-    }
-    return cv::Mat();
+cv::Mat convert_to_lab(cv::Mat& img) {
+    cv::Mat imgLab;
+    cv::cvtColor(img, imgLab, CV_BGR2Lab);
+    return imgLab;
 }
 
 
