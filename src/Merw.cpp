@@ -60,9 +60,9 @@ void merw::Merw::averageRegion(merw::Region& region, cv::Mat& image) {
             max_y = pi->second;
     }
 
-    region.av_x /= region.pixels.size() * 255;
-    region.av_y /= region.pixels.size() * 255;
-    region.av_z /= region.pixels.size() * 255;
+    region.av_x /= region.pixels.size();
+    region.av_y /= region.pixels.size();
+    region.av_z /= region.pixels.size();
 
     region.center = {min_x + (max_x - min_x) / 2, min_y + (max_y - min_y) / 2};
 }
@@ -149,7 +149,7 @@ void merw::Merw::process(cv::Mat image) {
     delete[] closed_list;
     delete[] visited_regions;
 
-    for(auto&& region : regions) {
+    for(auto& region : regions) {
         averageRegion(region, image);
     }
 
@@ -163,7 +163,7 @@ void merw::Merw::process(cv::Mat image) {
                 adjacency_matrix[i][j] = adjacency_matrix[j][i] = colorDistance(regions[i], regions[j],
                                                                                 averageColorValue,
                                                                                 averageDistanceValue);
-                std::cout << adjacency_matrix[i][j] << std::endl;
+                //std::cout << adjacency_matrix[i][j] << std::endl;
             }
         }
     }
