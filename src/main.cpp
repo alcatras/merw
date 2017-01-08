@@ -2,7 +2,8 @@
 #include <getopt.h>
 
 #include "image_utils.h"
-#include "merw.h"
+#include "Merw.h"
+#include "Superpixel.h"
 
 int main(int argc, char** argv) {
     std::string photo = "";
@@ -64,17 +65,11 @@ int main(int argc, char** argv) {
 
     cv::Mat image = cv::imread(photo);
 
-    superpixel_settings settings;
-    settings.method = cv::ximgproc::SLIC;
-    settings.region_size = 50;
-    settings.ruler = 10.f;
-    settings.iterations = 10;
-    settings.enforce_connectivity = true;
-    settings.dump_data = true;
+    merw::Superpixel superpixel(cv::ximgproc::SLIC, 20, 10.f, 10);
 
-    superpixel_result superpixeled = slic_superpixel(settings, image);
+    merw::Merw merw(superpixel, 0.85);
 
-    merw(image, superpixeled);
+    merw.process(image);
 
     exit(0);
 }
