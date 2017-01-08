@@ -3,8 +3,6 @@
 //
 
 #include "Superpixel.h"
-#include <iostream>
-#include <opencv2/opencv.hpp>
 
 merw::Superpixel::Superpixel(typename cv::ximgproc::SLIC t, int s, float r, int i) {
     type = t;

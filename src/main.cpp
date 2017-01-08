@@ -1,9 +1,7 @@
 #include <iostream>
 #include <getopt.h>
 
-#include "image_utils.h"
 #include "Merw.h"
-#include "Superpixel.h"
 
 int main(int argc, char** argv) {
     std::string photo = "";

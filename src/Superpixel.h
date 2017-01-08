@@ -5,7 +5,8 @@
 #ifndef SMART_WALLPAPERS_SUPERPIXEL_H
 #define SMART_WALLPAPERS_SUPERPIXEL_H
 
-#include <opencv2/core/mat.hpp>
+#include <iostream>
+#include <opencv2/opencv.hpp>
 #include <opencv2/ximgproc/slic.hpp>
 
 namespace merw {

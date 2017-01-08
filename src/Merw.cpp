@@ -2,7 +2,6 @@
 // Created by kamil on 08.01.17.
 //
 
-#include <stack>
 #include "Merw.h"
 
 double
@@ -163,7 +162,7 @@ void merw::Merw::process(cv::Mat image) {
                 adjacency_matrix[i][j] = adjacency_matrix[j][i] = colorDistance(regions[i], regions[j],
                                                                                 averageColorValue,
                                                                                 averageDistanceValue);
-                //std::cout << adjacency_matrix[i][j] << std::endl;
+                std::cout << adjacency_matrix[i][j] << std::endl;
             }
         }
     }

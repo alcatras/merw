@@ -6,7 +6,9 @@
 #define SMART_WALLPAPERS_MERW_H
 
 #include <vector>
+#include <stack>
 #include <opencv2/opencv.hpp>
+
 #include "Superpixel.h"
 
 namespace merw {
@@ -35,10 +37,11 @@ namespace merw {
 
         void averageRegion(Region& region, cv::Mat& image);
 
-        cv::Mat createAveragedImage(cv::Mat &regionMap, std::vector<merw::Region>& regions);
+        cv::Mat createAveragedImage(cv::Mat& regionMap, std::vector<merw::Region>& regions);
 
     public:
         Merw(merw::Superpixel s, double acv);
+
         ~Merw();
 
         void process(cv::Mat image);
