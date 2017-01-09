@@ -66,29 +66,23 @@ void merw::Merw::averageRegion(merw::Region& region, cv::Mat& image) {
     region.center = {min_x + (max_x - min_x) / 2, min_y + (max_y - min_y) / 2};
 }
 
-merw::Merw::Merw(merw::Superpixel s, double acv) : superpixel(s) {
-    averageColorValue = acv;
-}
-
 merw::Merw::~Merw() {
 
 }
 
-void merw::Merw::process(cv::Mat image) {
-    // superpixel
-    SuperpixelResult super_res = superpixel.process(image);
+void merw::Merw::generateGraph(const cv::Mat& image, const Superpixel& superpixel) {
 
     uint width = (uint) image.cols;
     uint height = (uint) image.rows;
 
     // initialize regions
     std::vector<Region> regions;
-    for(int i = 0; i < super_res.regions; ++i)
+    for(int i = 0; i < superpixel.getRegions(); ++i)
         regions.push_back(Region());
 
     // initialize auxilary visited regions list
-    bool* visited_regions = new bool[super_res.regions];
-    for(int k = 0; k < super_res.regions; ++k)
+    bool* visited_regions = new bool[superpixel.getRegions()];
+    for(int k = 0; k < superpixel.getRegions(); ++k)
         visited_regions[k] = false;
 
     // initialize open list
@@ -100,17 +94,14 @@ void merw::Merw::process(cv::Mat image) {
     for(int i = 0; i < width * height; ++i)
         closed_list[i] = false;
 
-    // initialize adjacency matrix
-    double adjacency_matrix[super_res.regions][super_res.regions];
-    for(int i = 0; i < super_res.regions; ++i)
-        for(int j = 0; j < super_res.regions; ++j)
-            adjacency_matrix[i][j] = 0;
+    // create adjacency matrix
+    cv::Mat adjacency_matrix(superpixel.getRegions(), superpixel.getRegions(), CV_8S, cv::Scalar(0));
 
     while(!open_list.empty()) {
         auto pixel = (std::pair<uint, uint>&&) open_list.top();
         open_list.pop();
 
-        int current_region = super_res.map.at<int>(pixel.second, pixel.first);
+        int current_region = superpixel.getMap().at<int>(pixel.second, pixel.first);
         visited_regions[current_region] = true;
 
         std::stack<std::pair<uint, uint>> region_open_list;
@@ -125,14 +116,14 @@ void merw::Merw::process(cv::Mat image) {
             auto neighbours = getNeighbours(current_pixel, closed_list, width, height);
 
             for(auto it = neighbours.begin(); it != neighbours.end(); ++it) {
-                int region = super_res.map.at<int>(it->second, it->first);
+                int region = superpixel.getMap().at<int>(it->second, it->first);
 
                 if(region == current_region) {
                     region_open_list.push(*it);
                     closed_list[it->second * width + it->first] = true;
                 } else {
-                    if(!(adjacency_matrix[current_region][region] || adjacency_matrix[region][current_region])) {
-                        adjacency_matrix[current_region][region] = adjacency_matrix[region][current_region] = 1;
+                    if(!(adjacency_matrix.at<uchar>(current_region, region) || adjacency_matrix.at<uchar>(region, current_region))) {
+                        adjacency_matrix.at<uchar>(current_region, region) = adjacency_matrix.at<uchar>(region, current_region) = 1;
 
                         if(!visited_regions[region]) {
                             open_list.push(*it);
@@ -148,24 +139,30 @@ void merw::Merw::process(cv::Mat image) {
     delete[] closed_list;
     delete[] visited_regions;
 
+    cv::Mat tempImage(image.size(), CV_8UC3);
+
+    cv::cvtColor(image, tempImage, CV_BGR2Lab);
+
     for(auto& region : regions) {
-        averageRegion(region, image);
+        averageRegion(region, tempImage);
     }
 
-    cv::imwrite("dump/avr.png", createAveragedImage(super_res.map, regions));
+    tempImage = createAveragedImage((cv::Mat&) superpixel.getMap(), regions);
+    cv::cvtColor(tempImage, averagedImage, CV_Lab2BGR);
 
-    double averageDistanceValue = 1 - averageColorValue;
 
-    for(int i = 0; i < super_res.regions; ++i) {
-        for(int j = i + 1; j < super_res.regions; ++j) {
-            if(adjacency_matrix[i][j] == 1) {
-                adjacency_matrix[i][j] = adjacency_matrix[j][i] = colorDistance(regions[i], regions[j],
-                                                                                averageColorValue,
-                                                                                averageDistanceValue);
-                std::cout << adjacency_matrix[i][j] << std::endl;
-            }
-        }
-    }
+//    double averageDistanceValue = 1 - averageColorValue;
+//
+//    for(int i = 0; i < super_res.regions; ++i) {
+//        for(int j = i + 1; j < super_res.regions; ++j) {
+//            if(adjacency_matrix.at<uint>(i, j) == 1) {
+//                adjacency_matrix[i][j] = adjacency_matrix[j][i] = colorDistance(regions[i], regions[j],
+//                                                                                averageColorValue,
+//                                                                                averageDistanceValue);
+//                std::cout << adjacency_matrix[i][j] << std::endl;
+//            }
+//        }
+//    }
 }
 
 cv::Mat merw::Merw::createAveragedImage(cv::Mat& regionMap, std::vector<merw::Region>& regions) {
@@ -184,5 +181,9 @@ cv::Mat merw::Merw::createAveragedImage(cv::Mat& regionMap, std::vector<merw::Re
             pix_bgr.val[2] = (unsigned char) regions[region].av_z;
         }
     }
+    return averagedImage;
+}
+
+const cv::Mat& merw::Merw::getAveragedImage() const {
     return averagedImage;
 }

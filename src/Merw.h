@@ -27,9 +27,8 @@ namespace merw {
     };
 
     class Merw {
-        merw::Superpixel superpixel;
 
-        double averageColorValue;
+        cv::Mat averagedImage;
 
         double colorDistance(const Region& lhs, const Region& rhs, double colorValue, double distanceValue);
 
@@ -40,11 +39,11 @@ namespace merw {
         cv::Mat createAveragedImage(cv::Mat& regionMap, std::vector<merw::Region>& regions);
 
     public:
-        Merw(merw::Superpixel s, double acv);
-
         ~Merw();
 
-        void process(cv::Mat image);
+        void generateGraph(const cv::Mat& image, const Superpixel& superpixel);
+
+        const cv::Mat& getAveragedImage() const;
     };
 }
 

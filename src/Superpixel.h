@@ -10,21 +10,26 @@
 #include <opencv2/ximgproc/slic.hpp>
 
 namespace merw {
-    struct SuperpixelResult {
-        cv::Mat map;
-        int regions;
-    };
-
     class Superpixel {
         typename cv::ximgproc::SLIC type;
         int size;
         float ruler;
         int iterations;
 
+        cv::Mat map;
+        cv::Mat contour;
+        int regions;
+
     public:
         Superpixel(typename cv::ximgproc::SLIC type, int size, float ruler, int iterations);
 
-        SuperpixelResult process(cv::Mat mat);
+        void process(const cv::Mat& mat);
+
+        const cv::Mat& getMap() const;
+
+        const cv::Mat& getContour() const;
+
+        int getRegions() const;
     };
 }
 

@@ -11,24 +11,34 @@ merw::Superpixel::Superpixel(typename cv::ximgproc::SLIC t, int s, float r, int 
     iterations = i;
 }
 
-merw::SuperpixelResult merw::Superpixel::process(cv::Mat mat) {
+void merw::Superpixel::process(const cv::Mat& mat) {
     cv::Ptr<cv::ximgproc::SuperpixelSLIC> slic = cv::ximgproc::createSuperpixelSLIC(mat, type, size, ruler);
     slic->iterate(iterations);
 
+    map = cv::Mat(mat.size(), CV_8UC1);
+    contour = cv::Mat(mat.size(), CV_8UC3);
+
     slic->enforceLabelConnectivity();
 
-    cv::Mat labels(mat.size(), CV_32SC1);
-    slic->getLabels(labels);
+    slic->getLabels(map);
 
-    std::cout << "slic finished\nsuperpixels: " << slic->getNumberOfSuperpixels() << std::endl;
+    cv::Mat cnt;
+    slic->getLabelContourMask(cnt);
+    cv::cvtColor(cnt, contour, CV_GRAY2BGR);
 
-    cv::Mat contour;
-    slic->getLabelContourMask(contour);
+    regions = slic->getNumberOfSuperpixels();
+}
 
-    cv::imwrite("dump/superpixel_contour.png", contour);
-    cv::imwrite("dump/superpixel_labels.png", labels);
+const cv::Mat& merw::Superpixel::getMap() const {
+    return map;
+}
 
-    return {labels, slic->getNumberOfSuperpixels()};
+const cv::Mat& merw::Superpixel::getContour() const {
+    return contour;
+}
+
+int merw::Superpixel::getRegions() const {
+    return regions;
 }
 
 
