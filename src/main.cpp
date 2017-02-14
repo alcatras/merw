@@ -1,4 +1,7 @@
 #include <iostream>
+#include <chrono>
+#include <atomic>
+#include <zconf.h>
 
 #include "Merw.h"
 
@@ -13,7 +16,7 @@ namespace merw {
     cv::Mat image4;
 
     const int size_slider_max = 100;
-    int size_value = 20;
+    int size_value = 18;
 
     const int ruler_slider_max = 200;
     int ruler_value = 100;
@@ -21,7 +24,7 @@ namespace merw {
     const int iterations_slider_max = 50;
     int iterations_value = 10;
 
-    void update(int) {
+    void update(int, void*) {
         Superpixel superpixel(cv::ximgproc::SLIC, size_value, ruler_value / 10.f, iterations_value);
         superpixel.process(image);
 
@@ -31,24 +34,27 @@ namespace merw {
         std::cout << "number of regions: " << superpixel.getRegions() << std::endl;
 
         Merw merw;
-        merw.generateGraph(image, superpixel);
 
+        merw.generateGraph(image, superpixel);
         merw.getAveragedImage().copyTo(image3);
+
+        merw.calculateStationaryDistribution(0.8);
+        merw.getStationaryDistributionImage().copyTo(image4);
 
         cv::imshow("merw", compound);
     }
 }
 
-int main(int argc, char** argv) {
+int main(int argc, char **argv) {
 
     cv::namedWindow("merw");
-    cvCreateTrackbar("superpixel size", "merw", &merw::size_value, merw::size_slider_max, merw::update);
-    cvCreateTrackbar("ruler", "merw", &merw::ruler_value, merw::ruler_slider_max, merw::update);
-    cvCreateTrackbar("iterations", "merw", &merw::iterations_value, merw::iterations_slider_max, merw::update);
+    cvCreateTrackbar("superpixel size", "merw", &merw::size_value, merw::size_slider_max);
+    cvCreateTrackbar("ruler", "merw", &merw::ruler_value, merw::ruler_slider_max);
+    cvCreateTrackbar("iterations", "merw", &merw::iterations_value, merw::iterations_slider_max);
 
     using namespace merw;
 
-    image = cv::imread("example_photos/sunflower.jpg");
+    image = cv::imread("example_photos/mountain.jpeg");
 
     cv::Size size = image.size();
     compound = cv::Mat(size.height, size.width * 4, CV_8UC3);
@@ -60,7 +66,7 @@ int main(int argc, char** argv) {
 
     image.copyTo(image1);
 
-    update(0);
+    update(0, 0);
 
     cvWaitKey(0);
 

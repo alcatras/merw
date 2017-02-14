@@ -29,6 +29,11 @@ namespace merw {
     class Merw {
 
         cv::Mat averagedImage;
+        cv::Mat regionMap;
+        cv::Mat stationaryImage;
+        cv::Mat adjacency_matrix;
+
+        std::vector<Region> regions;
 
         double colorDistance(const Region& lhs, const Region& rhs, double colorValue, double distanceValue);
 
@@ -36,14 +41,18 @@ namespace merw {
 
         void averageRegion(Region& region, cv::Mat& image);
 
-        cv::Mat createAveragedImage(cv::Mat& regionMap, std::vector<merw::Region>& regions);
+        cv::Mat createAveragedImage();
 
     public:
         ~Merw();
 
         void generateGraph(const cv::Mat& image, const Superpixel& superpixel);
 
+        void calculateStationaryDistribution(const double colorValue);
+
         const cv::Mat& getAveragedImage() const;
+
+        const cv::Mat& getStationaryDistributionImage() const;
     };
 }
 

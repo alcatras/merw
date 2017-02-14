@@ -76,7 +76,7 @@ void merw::Merw::generateGraph(const cv::Mat& image, const Superpixel& superpixe
     uint height = (uint) image.rows;
 
     // initialize regions
-    std::vector<Region> regions;
+    regions = std::vector<Region>();
     for(int i = 0; i < superpixel.getRegions(); ++i)
         regions.push_back(Region());
 
@@ -95,7 +95,7 @@ void merw::Merw::generateGraph(const cv::Mat& image, const Superpixel& superpixe
         closed_list[i] = false;
 
     // create adjacency matrix
-    cv::Mat adjacency_matrix(superpixel.getRegions(), superpixel.getRegions(), CV_8S, cv::Scalar(0));
+    adjacency_matrix = cv::Mat(superpixel.getRegions(), superpixel.getRegions(), CV_64F, cv::Scalar(0));
 
     while(!open_list.empty()) {
         auto pixel = (std::pair<uint, uint>&&) open_list.top();
@@ -122,8 +122,8 @@ void merw::Merw::generateGraph(const cv::Mat& image, const Superpixel& superpixe
                     region_open_list.push(*it);
                     closed_list[it->second * width + it->first] = true;
                 } else {
-                    if(!(adjacency_matrix.at<uchar>(current_region, region) || adjacency_matrix.at<uchar>(region, current_region))) {
-                        adjacency_matrix.at<uchar>(current_region, region) = adjacency_matrix.at<uchar>(region, current_region) = 1;
+                    if(!(adjacency_matrix.at<double>(current_region, region) != 0 || adjacency_matrix.at<double>(region, current_region)) != 0) {
+                        adjacency_matrix.at<double>(current_region, region) = adjacency_matrix.at<double>(region, current_region) = 1.0;
 
                         if(!visited_regions[region]) {
                             open_list.push(*it);
@@ -147,25 +147,79 @@ void merw::Merw::generateGraph(const cv::Mat& image, const Superpixel& superpixe
         averageRegion(region, tempImage);
     }
 
-    tempImage = createAveragedImage((cv::Mat&) superpixel.getMap(), regions);
+    regionMap = superpixel.getMap();
+
+    tempImage = createAveragedImage();
     cv::cvtColor(tempImage, averagedImage, CV_Lab2BGR);
+}
 
+void merw::Merw::calculateStationaryDistribution(const double colorValue) {
+    const double distanceValue = 1 - colorValue;
 
-//    double averageDistanceValue = 1 - averageColorValue;
+    const double MATH_E = std::exp(1);
+
+    for(int i = 0; i < adjacency_matrix.rows; ++i) {
+        for(int j = i + 1; j < adjacency_matrix.rows; ++j) {
+            if(adjacency_matrix.at<double>(i, j) != 0) {
+                double value = std::pow(MATH_E, -colorDistance(regions[i], regions[j], colorValue, distanceValue));
+                adjacency_matrix.at<double>(i, j) = value;
+                adjacency_matrix.at<double>(j, i) = value;
+            }
+        }
+    }
+
+    cv::Mat eigen_values, eigen_vectors;
+    cv::eigen(adjacency_matrix, eigen_values, eigen_vectors);
+
+    stationaryImage = cv::Mat(regionMap.rows, regionMap.cols, CV_8UC3);
+
+    double eigen_min = std::numeric_limits<double>::max();
+    double eigen_max = -std::numeric_limits<double>::max();
+
+    for(int i = 0; i < adjacency_matrix.rows; ++i) {
+        double eigen_squared = std::pow(eigen_vectors.at<double>(0, i), 2.);
+        eigen_vectors.at<double>(0, i) = eigen_squared;
+
+        if(eigen_squared < eigen_min)
+            eigen_min = eigen_squared;
+        else if(eigen_squared > eigen_max)
+            eigen_max = eigen_squared;
+    }
+
+    for(int i = 0; i < adjacency_matrix.rows; ++i) {
+        eigen_vectors.at<double>(0, i) = (eigen_vectors.at<double>(0, i) - eigen_min) / (eigen_max - eigen_min);
+    }
+
+    for(int i = 0; i < regionMap.rows; ++i) {
+        for (int j = 0; j < regionMap.cols; ++j) {
+            cv::Vec3b &pix_bgr = stationaryImage.ptr<cv::Vec3b>(i)[j];
+            int region = regionMap.at<int>(i, j);
+
+            pix_bgr.val[0] = (unsigned char) (eigen_vectors.at<double>(0, region) * 255);
+            pix_bgr.val[1] = (unsigned char) (eigen_vectors.at<double>(0, region) * 255);
+            pix_bgr.val[2] = (unsigned char) (eigen_vectors.at<double>(0, region) * 255);
+        }
+    }
+    cv::imwrite("ddudud.png", stationaryImage);
+
+//    }
 //
-//    for(int i = 0; i < super_res.regions; ++i) {
-//        for(int j = i + 1; j < super_res.regions; ++j) {
-//            if(adjacency_matrix.at<uint>(i, j) == 1) {
-//                adjacency_matrix[i][j] = adjacency_matrix[j][i] = colorDistance(regions[i], regions[j],
-//                                                                                averageColorValue,
-//                                                                                averageDistanceValue);
-//                std::cout << adjacency_matrix[i][j] << std::endl;
-//            }
+//    for(unsigned i = 0; i < regions.size(); ++i) {
+//        Region &region = regions[i];
+//
+//        double region_distribution = (eigen_vectors.at<double>(0, i) - eigen_min) / (eigen_max - eigen_min);
+//
+//        for(auto pi = region.pixels.begin(); pi != region.pixels.end(); ++pi) {
+//            cv::Vec3b& pixel = stationaryImage.at<cv::Vec3b>(pi->second, pi->first);
+//
+//            pixel.val[0] = (unsigned char) (region_distribution * 255);
+//            pixel.val[1] = (unsigned char) (region_distribution * 255);
+//            pixel.val[2] = (unsigned char) (region_distribution * 255);
 //        }
 //    }
 }
 
-cv::Mat merw::Merw::createAveragedImage(cv::Mat& regionMap, std::vector<merw::Region>& regions) {
+cv::Mat merw::Merw::createAveragedImage() {
     uint width = (uint) regionMap.cols;
     uint height = (uint) regionMap.rows;
 
@@ -186,4 +240,8 @@ cv::Mat merw::Merw::createAveragedImage(cv::Mat& regionMap, std::vector<merw::Re
 
 const cv::Mat& merw::Merw::getAveragedImage() const {
     return averagedImage;
+}
+
+const cv::Mat &merw::Merw::getStationaryDistributionImage() const {
+    return stationaryImage;
 }
